@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e0d972d9-9c2a-4703-9622-48c4c40d6c5d" name="Changes" comment="Третий коммит: обновление requirements.txt" />
+    <list default="true" id="e0d972d9-9c2a-4703-9622-48c4c40d6c5d" name="Changes" comment="Четвертый коммит: обновление requirements.txt">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/services.py" beforeDir="false" afterPath="$PROJECT_DIR$/services.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -105,13 +108,22 @@
       <option name="project" value="LOCAL" />
       <updated>1743878939100</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Четвертый коммит: обновление requirements.txt">
+      <option name="closed" value="true" />
+      <created>1743879099115</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1743879099115</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="First commit." />
     <MESSAGE value=" Второй коммит: добавление пояснения к модулю и редактирование кода" />
     <MESSAGE value="Третий коммит: обновление requirements.txt" />
-    <option name="LAST_COMMIT_MESSAGE" value="Третий коммит: обновление requirements.txt" />
+    <MESSAGE value="Четвертый коммит: обновление requirements.txt" />
+    <option name="LAST_COMMIT_MESSAGE" value="Четвертый коммит: обновление requirements.txt" />
   </component>
 </project>

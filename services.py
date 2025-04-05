@@ -151,6 +151,8 @@ def register_visitor(name: str, email: str, phone: str):
     conn.commit()
     conn.close()
 
+
+
 # 12. Добавление отзыва посетителя
 def add_visitor_review(exhibition_id: int, review: str, reviewer_name: str):
     conn = get_connection()
@@ -273,3 +275,18 @@ def get_press_reviews():
 
     conn.close()
     return reviews
+
+# 22. Получение списка всех зарегистрированных посетителей
+def get_visitors():
+    """
+    Возвращает:
+        list: Список кортежей с данными посетителей
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT * FROM Visitor ORDER BY registration_date DESC')
+    visitors = cursor.fetchall()
+
+    conn.close()
+    return visitors
