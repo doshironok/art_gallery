@@ -4,7 +4,6 @@
 """
 
 from datetime import date
-
 class Artwork:
     def __init__(self, id=None, title=None, year_created=None, technique=None, dimensions=None,
                  description=None, genre=None, current_location=None, status=None, artist_id=None):
