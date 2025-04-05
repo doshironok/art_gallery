@@ -5,7 +5,6 @@ import sqlite3
 DATABASE = "art_gallery.db"
 
 def get_connection():
-    """Создает и возвращает соединение с базой данных."""
     conn = sqlite3.connect(DATABASE)
     return conn
 
