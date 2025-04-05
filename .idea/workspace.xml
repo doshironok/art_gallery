@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e0d972d9-9c2a-4703-9622-48c4c40d6c5d" name="Changes" comment="First commit.">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="e0d972d9-9c2a-4703-9622-48c4c40d6c5d" name="Changes" comment="Третий коммит: обновление requirements.txt" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -83,11 +81,37 @@
       <option name="project" value="LOCAL" />
       <updated>1743877277183</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="First commit.">
+      <option name="closed" value="true" />
+      <created>1743878659840</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1743878659840</updated>
+    </task>
+    <task id="LOCAL-00003" summary=" Второй коммит: добавление пояснения к модулю и редактирование кода">
+      <option name="closed" value="true" />
+      <created>1743878738180</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1743878738180</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Третий коммит: обновление requirements.txt">
+      <option name="closed" value="true" />
+      <created>1743878939100</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1743878939100</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="First commit." />
-    <option name="LAST_COMMIT_MESSAGE" value="First commit." />
+    <MESSAGE value=" Второй коммит: добавление пояснения к модулю и редактирование кода" />
+    <MESSAGE value="Третий коммит: обновление requirements.txt" />
+    <option name="LAST_COMMIT_MESSAGE" value="Третий коммит: обновление requirements.txt" />
   </component>
 </project>
