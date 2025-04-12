@@ -1,81 +1,168 @@
 from datetime import date
 from database import get_connection
+import sqlite3
+
+
+class ArtGalleryError(Exception):
+    """Базовый класс для ошибок галереи"""
+    pass
+
+
+class DatabaseError(ArtGalleryError):
+    """Ошибки работы с базой данных"""
+    pass
+
+
+class ValidationError(ArtGalleryError):
+    """Ошибки валидации данных"""
+    pass
+
+
+def _validate_artwork_data(title: str, artist_id: int):
+    """Валидация базовых данных о картине"""
+    if not title or not isinstance(title, str):
+        raise ValidationError("Название картины обязательно и должно быть строкой")
+    if not isinstance(artist_id, int) or artist_id <= 0:
+        raise ValidationError("ID художника должен быть положительным целым числом")
+
+
+def _execute_db_operation(operation, *args, **kwargs):
+    """Обертка для выполнения операций с БД с обработкой ошибок"""
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        result = operation(cursor, *args, **kwargs)
+        conn.commit()
+        return result
+    except sqlite3.Error as e:
+        if conn:
+            conn.rollback()
+        raise DatabaseError(f"Ошибка базы данных: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
+
 
 # 1. Приобретение картины
 def acquire_artwork(title: str, year_created: int, technique: str, dimensions: str,
                     description: str, genre: str, artist_id: int, provenance_entry: str):
-    conn = get_connection()
-    cursor = conn.cursor()
+    """Добавляет новую картину и информацию о ее происхождении"""
+    try:
+        _validate_artwork_data(title, artist_id)
 
-    # Добавление картины
-    cursor.execute('''
-        INSERT INTO Artwork (title, year_created, technique, dimensions, description, genre, current_location, status, artist_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (title, year_created, technique, dimensions, description, genre, "Gallery Storage", "Acquired", artist_id))
-    artwork_id = cursor.lastrowid
+        def operation(cursor):
+            # Добавление картины
+            cursor.execute('''
+                INSERT INTO Artwork (title, year_created, technique, dimensions, 
+                                   description, genre, current_location, status, artist_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (title, year_created, technique, dimensions, description,
+                  genre, "Gallery Storage", "Acquired", artist_id))
+            artwork_id = cursor.lastrowid
 
-    # Добавление провенанса
-    cursor.execute('''
-        INSERT INTO Provenance (artwork_id, provenance_entry, entry_date)
-        VALUES (?, ?, ?)
-    ''', (artwork_id, provenance_entry, date.today()))
+            # Добавление провенанса
+            cursor.execute('''
+                INSERT INTO Provenance (artwork_id, provenance_entry, entry_date)
+                VALUES (?, ?, ?)
+            ''', (artwork_id, provenance_entry, date.today()))
+            return artwork_id
 
-    conn.commit()
-    conn.close()
+        return _execute_db_operation(operation)
+    except ArtGalleryError:
+        raise
+    except Exception as e:
+        raise ArtGalleryError(f"Ошибка при добавлении картины: {str(e)}")
+
 
 # 2. Фиксация состояния перед реставрацией
 def record_restoration_state(artwork_id: int, restorer_name: str, condition_before: str):
-    conn = get_connection()
-    cursor = conn.cursor()
+    """Записывает информацию о начале реставрации"""
+    try:
+        if not isinstance(artwork_id, int) or artwork_id <= 0:
+            raise ValidationError("Некорректный ID картины")
+        if not restorer_name:
+            raise ValidationError("Имя реставратора обязательно")
 
-    cursor.execute('''
-        INSERT INTO Restoration (artwork_id, restorer_name, start_date, condition_before, condition_after)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (artwork_id, restorer_name, date.today(), condition_before, "Restoration in progress"))
+        def operation(cursor):
+            cursor.execute('''
+                INSERT INTO Restoration (artwork_id, restorer_name, start_date, 
+                                       condition_before, condition_after)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (artwork_id, restorer_name, date.today(),
+                  condition_before, "Restoration in progress"))
+            return cursor.lastrowid
 
-    conn.commit()
-    conn.close()
+        return _execute_db_operation(operation)
+    except ArtGalleryError:
+        raise
+    except Exception as e:
+        raise ArtGalleryError(f"Ошибка при записи состояния реставрации: {str(e)}")
+
 
 # 3. Просмотр информации о картинах
 def get_artworks():
-    conn = get_connection()
-    cursor = conn.cursor()
+    """Возвращает список всех картин"""
+    try:
+        def operation(cursor):
+            cursor.execute('SELECT * FROM Artwork')
+            return cursor.fetchall()
 
-    cursor.execute('SELECT * FROM Artwork')
-    artworks = cursor.fetchall()
+        return _execute_db_operation(operation)
+    except Exception as e:
+        raise DatabaseError(f"Ошибка при получении списка картин: {str(e)}")
 
-    conn.close()
-    return artworks
 
 # 4. Учет стоимости картин
 def update_artwork_price(artwork_id: int, new_price: float):
-    conn = get_connection()
-    cursor = conn.cursor()
+    """Обновляет стоимость картины"""
+    try:
+        if not isinstance(artwork_id, int) or artwork_id <= 0:
+            raise ValidationError("Некорректный ID картины")
+        if not isinstance(new_price, (int, float)) or new_price < 0:
+            raise ValidationError("Цена должна быть положительным числом")
 
-    cursor.execute('UPDATE Artwork SET price = ? WHERE id = ?', (new_price, artwork_id))
-    conn.commit()
-    conn.close()
+        def operation(cursor):
+            cursor.execute('UPDATE Artwork SET price = ? WHERE id = ?',
+                           (new_price, artwork_id))
+            return cursor.rowcount
+
+        return _execute_db_operation(operation)
+    except ArtGalleryError:
+        raise
+    except Exception as e:
+        raise ArtGalleryError(f"Ошибка при обновлении цены картины: {str(e)}")
+
 
 # 5. Документация о подлинности
 def add_document(artwork_id: int, document_type: str, file_path: str):
-    conn = get_connection()
-    cursor = conn.cursor()
+    """Добавляет документ о подлинности картины"""
+    try:
+        if not isinstance(artwork_id, int) or artwork_id <= 0:
+            raise ValidationError("Некорректный ID картины")
+        if not document_type:
+            raise ValidationError("Тип документа обязателен")
 
-    # Добавление документа
-    cursor.execute('''
-        INSERT INTO Document (artwork_id, document_type, issue_date)
-        VALUES (?, ?, ?)
-    ''', (artwork_id, document_type, date.today()))
-    document_id = cursor.lastrowid
+        def operation(cursor):
+            # Добавление документа
+            cursor.execute('''
+                INSERT INTO Document (artwork_id, document_type, issue_date)
+                VALUES (?, ?, ?)
+            ''', (artwork_id, document_type, date.today()))
+            document_id = cursor.lastrowid
 
-    # Добавление файла документа
-    cursor.execute('''
-        INSERT INTO Document_File (document_id, file_path, upload_date)
-        VALUES (?, ?, ?)
-    ''', (document_id, file_path, date.today()))
+            # Добавление файла документа
+            cursor.execute('''
+                INSERT INTO Document_File (document_id, file_path, upload_date)
+                VALUES (?, ?, ?)
+            ''', (document_id, file_path, date.today()))
+            return document_id
 
-    conn.commit()
-    conn.close()
+        return _execute_db_operation(operation)
+    except ArtGalleryError:
+        raise
+    except Exception as e:
+        raise ArtGalleryError(f"Ошибка при добавлении документа: {str(e)}")
 
 # 6. Просмотр информации о художниках
 def get_artists():
@@ -138,18 +225,30 @@ def rent_artwork(artwork_id: int, renter_name: str, start_date: str, end_date: s
     conn.commit()
     conn.close()
 
+
 # 11. Регистрация посетителей
 def register_visitor(name: str, email: str, phone: str):
-    conn = get_connection()
-    cursor = conn.cursor()
+    """Регистрирует нового посетителя"""
+    try:
+        if not name:
+            raise ValidationError("Имя посетителя обязательно")
+        if not email or "@" not in email:
+            raise ValidationError("Некорректный email")
 
-    cursor.execute('''
-        INSERT INTO Visitor (name, email, phone, registration_date)
-        VALUES (?, ?, ?, ?)
-    ''', (name, email, phone, date.today()))
+        def operation(cursor):
+            cursor.execute('''
+                INSERT INTO Visitor (name, email, phone, registration_date)
+                VALUES (?, ?, ?, ?)
+            ''', (name, email, phone, date.today()))
+            return cursor.lastrowid
 
-    conn.commit()
-    conn.close()
+        return _execute_db_operation(operation)
+    except sqlite3.IntegrityError:
+        raise DatabaseError("Посетитель с таким email уже существует")
+    except ArtGalleryError:
+        raise
+    except Exception as e:
+        raise ArtGalleryError(f"Ошибка при регистрации посетителя: {str(e)}")
 
 
 
@@ -276,17 +375,15 @@ def get_press_reviews():
     conn.close()
     return reviews
 
+
 # 22. Получение списка всех зарегистрированных посетителей
 def get_visitors():
-    """
-    Возвращает:
-        list: Список кортежей с данными посетителей
-    """
-    conn = get_connection()
-    cursor = conn.cursor()
+    """Возвращает список всех посетителей"""
+    try:
+        def operation(cursor):
+            cursor.execute('SELECT * FROM Visitor ORDER BY registration_date DESC')
+            return cursor.fetchall()
 
-    cursor.execute('SELECT * FROM Visitor ORDER BY registration_date DESC')
-    visitors = cursor.fetchall()
-
-    conn.close()
-    return visitors
+        return _execute_db_operation(operation)
+    except Exception as e:
+        raise DatabaseError(f"Ошибка при получении списка посетителей: {str(e)}")
