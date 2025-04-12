@@ -46,29 +46,26 @@ def _execute_db_operation(operation, *args, **kwargs):
 
 # 1. Приобретение картины
 def acquire_artwork(title: str, year_created: int, technique: str, dimensions: str,
-                    description: str, genre: str, artist_id: int, provenance_entry: str):
+                    description: str, genre: str, artist_id: int, provenance_entry: str) -> int:
+    """Добавляет новую картину и возвращает её ID"""
+    conn = None
     try:
-        # Валидация данных
-        if not title or not isinstance(title, str):
-            raise ValidationError("Название картины обязательно и должно быть строкой.")
-        if not isinstance(year_created, int) or year_created <= 0:
-            raise ValidationError("Год создания должен быть положительным числом.")
-        if not isinstance(artist_id, int) or artist_id <= 0:
-            raise ValidationError("ID художника должен быть положительным целым числом.")
+        _validate_artwork_data(title, artist_id)
 
+        # Проверяем существование художника
         conn = get_connection()
         cursor = conn.cursor()
-
-        # Проверка существования художника
-        cursor.execute('SELECT id FROM Artist WHERE id = ?', (artist_id,))
+        cursor.execute('SELECT 1 FROM Artist WHERE id = ?', (artist_id,))
         if not cursor.fetchone():
-            raise ValidationError(f"Художник с ID {artist_id} не существует.")
+            raise DatabaseError(f"Художник с ID {artist_id} не существует")
 
         # Добавление картины
         cursor.execute('''
-            INSERT INTO Artwork (title, year_created, technique, dimensions, description, genre, current_location, status, artist_id)
+            INSERT INTO Artwork (title, year_created, technique, dimensions,
+                               description, genre, current_location, status, artist_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (title, year_created, technique, dimensions, description, genre, "Gallery Storage", "Acquired", artist_id))
+        ''', (title, year_created, technique, dimensions, description,
+              genre, "Gallery Storage", "Acquired", artist_id))
         artwork_id = cursor.lastrowid
 
         # Добавление провенанса
@@ -78,14 +75,15 @@ def acquire_artwork(title: str, year_created: int, technique: str, dimensions: s
         ''', (artwork_id, provenance_entry, date.today()))
 
         conn.commit()
-    except ValidationError as e:
-        conn.rollback()
-        raise e
+        return artwork_id
+
     except sqlite3.Error as e:
-        conn.rollback()
-        raise DatabaseError(f"Ошибка базы данных: {str(e)}")
+        if conn:
+            conn.rollback()
+        raise DatabaseError(f"Ошибка при добавлении картины: {str(e)}")
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 # 2. Фиксация состояния перед реставрацией
 def record_restoration_state(artwork_id: int, restorer_name: str, condition_before: str):
@@ -236,8 +234,11 @@ def record_movement(artwork_id: int, from_location: str, to_location: str, purpo
         conn.close()
 
 # 9. Продажа картин
+from datetime import date
+
 def sell_artwork(artwork_id: int, buyer_name: str, price: float):
     try:
+        # Валидация входных данных
         if not isinstance(artwork_id, int) or artwork_id <= 0:
             raise ValidationError("Некорректный ID картины.")
         if not buyer_name:
@@ -246,12 +247,19 @@ def sell_artwork(artwork_id: int, buyer_name: str, price: float):
             raise ValidationError("Цена должна быть положительным числом.")
 
         def operation(cursor):
+            # Добавляем запись о продаже
             cursor.execute('''
                 INSERT INTO Sale (artwork_id, buyer_name, sale_date, price)
                 VALUES (?, ?, ?, ?)
             ''', (artwork_id, buyer_name, date.today(), price))
-            return cursor.lastrowid
+
+            # Обновляем статус картины на "Sold"
+            cursor.execute('''
+                UPDATE Artwork SET status = ? WHERE id = ?
+            ''', ("Sold", artwork_id))
+
         return _execute_db_operation(operation)
+
     except ArtGalleryError:
         raise
     except Exception as e:
@@ -318,29 +326,82 @@ def register_visitor(name: str, email: str, phone: str):
         conn.close()
 
 
+def register_visitor(name: str, email: str, phone: str) -> int:
+    """Регистрирует нового посетителя и возвращает его ID"""
+    conn = None
+    try:
+        # Валидация данных
+        if not name or not isinstance(name, str):
+            raise ValidationError("Имя посетителя обязательно и должно быть строкой.")
+        if not email or "@" not in email:
+            raise ValidationError("Email должен содержать символ '@'.")
+        if not phone or not isinstance(phone, str):
+            raise ValidationError("Телефон обязателен и должен быть строкой.")
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Проверка уникальности email
+        cursor.execute('SELECT id FROM Visitor WHERE email = ?', (email,))
+        if cursor.fetchone():
+            raise ValidationError(f"Посетитель с email {email} уже зарегистрирован.")
+
+        # Регистрация нового посетителя
+        cursor.execute('''
+            INSERT INTO Visitor (name, email, phone, registration_date)
+            VALUES (?, ?, ?, ?)
+        ''', (name, email, phone, date.today()))
+
+        visitor_id = cursor.lastrowid
+        conn.commit()
+        return visitor_id
+
+    except sqlite3.Error as e:
+        if conn:
+            conn.rollback()
+        raise DatabaseError(f"Ошибка при регистрации посетителя: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
+
 
 # 12. Добавление отзыва посетителя
 def add_visitor_review(exhibition_id: int, review: str, reviewer_name: str):
+    """Добавляет отзыв посетителя с проверками"""
+    conn = None
     try:
+        # Валидация входных данных
         if not isinstance(exhibition_id, int) or exhibition_id <= 0:
-            raise ValidationError("Некорректный ID выставки.")
+            raise ValidationError("Некорректный ID выставки")
         if not review:
-            raise ValidationError("Текст отзыва обязателен.")
+            raise ValidationError("Текст отзыва обязателен")
         if not reviewer_name:
-            raise ValidationError("Имя автора отзыва обязательно.")
+            raise ValidationError("Имя посетителя обязательно")
 
-        def operation(cursor):
-            cursor.execute('''
-                    INSERT INTO Visitor_Review (exhibition_id, review, reviewer_name, review_date)
-                    VALUES (?, ?, ?, ?)
-                ''', (exhibition_id, review, reviewer_name, date.today()))
-            return cursor.lastrowid
+        conn = get_connection()
+        cursor = conn.cursor()
 
-        return _execute_db_operation(operation)
-    except ArtGalleryError:
-        raise
-    except Exception as e:
-        raise ArtGalleryError(f"Ошибка при добавлении отзыва посетителя: {str(e)}")
+        # Проверяем существование выставки
+        cursor.execute('SELECT 1 FROM Exhibition WHERE id = ?', (exhibition_id,))
+        if not cursor.fetchone():
+            raise DatabaseError("Выставка не найдена")
+
+        # Добавляем отзыв
+        cursor.execute('''
+            INSERT INTO Visitor_Review (exhibition_id, review, reviewer_name, review_date)
+            VALUES (?, ?, ?, ?)
+        ''', (exhibition_id, review, reviewer_name, date.today()))
+
+        conn.commit()
+        return cursor.lastrowid
+
+    except sqlite3.Error as e:
+        if conn:
+            conn.rollback()
+        raise DatabaseError(f"Ошибка базы данных: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
 
 # 13. Добавление отзыва прессы
 def add_press_review(exhibition_id: int, review: str, publication_name: str):
@@ -409,26 +470,49 @@ def add_material(name: str, unit_price: float):
 
 # 16. Добавление картины на выставку
 def add_artwork_to_exhibition(exhibition_id: int, artwork_id: int):
+    """Добавляет картину на выставку с проверками"""
     try:
+        # Проверяем валидность ID
         if not isinstance(exhibition_id, int) or exhibition_id <= 0:
-            raise ValidationError("Некорректный ID выставки.")
+            raise ValidationError("Некорректный ID выставки")
         if not isinstance(artwork_id, int) or artwork_id <= 0:
-            raise ValidationError("Некорректный ID картины.")
+            raise ValidationError("Некорректный ID картины")
 
         def operation(cursor):
+            # Проверяем существование выставки
+            cursor.execute('SELECT 1 FROM Exhibition WHERE id = ?', (exhibition_id,))
+            if not cursor.fetchone():
+                raise DatabaseError("Выставка не найдена")
+
+            # Проверяем существование картины
+            cursor.execute('SELECT 1 FROM Artwork WHERE id = ?', (artwork_id,))
+            if not cursor.fetchone():
+                raise DatabaseError("Картина не найдена")
+
+            # Проверяем, не добавлена ли уже картина
+            cursor.execute('''
+                SELECT 1 FROM Exhibition_Artwork 
+                WHERE exhibition_id = ? AND artwork_id = ?
+            ''', (exhibition_id, artwork_id))
+            if cursor.fetchone():
+                raise DatabaseError("Картина уже на выставке")
+
+            # Добавляем картину
             cursor.execute('''
                 INSERT INTO Exhibition_Artwork (exhibition_id, artwork_id)
                 VALUES (?, ?)
             ''', (exhibition_id, artwork_id))
+
             return cursor.lastrowid
 
         return _execute_db_operation(operation)
-    except sqlite3.IntegrityError:
-        raise DatabaseError("Картина уже добавлена на эту выставку.")
+
+    except sqlite3.Error as e:
+        raise DatabaseError(f"Ошибка базы данных: {str(e)}")
     except ArtGalleryError:
         raise
     except Exception as e:
-        raise ArtGalleryError(f"Ошибка при добавлении картины на выставку: {str(e)}")
+        raise ArtGalleryError(f"Ошибка при добавлении картины: {str(e)}")
 
 # 17. Создание выставки
 def create_exhibition(title: str, theme: str, start_date: str, end_date: str):

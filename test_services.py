@@ -1,4 +1,5 @@
 import pytest
+import time
 from datetime import date
 from services import *
 from database import initialize_db, get_connection
@@ -76,12 +77,34 @@ def sample_visitor():
     visitors = get_visitors()
     return visitors[0][0]  # Возвращаем ID посетителя
 
+
+
 # Тесты
-def test_get_visitors(setup_db, sample_visitor):
+def test_get_visitors(setup_db):
     """Тест получения списка посетителей."""
+    # Сначала очищаем таблицу Visitor
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM Visitor')
+    conn.commit()
+
+    # Регистрируем нового посетителя
+    timestamp = int(time.time())
+    visitor_id = register_visitor(
+        name=f"Test Visitor {timestamp}",
+        email=f"visitor{timestamp}@test.com",
+        phone=f"+123456{timestamp}"
+    )
+
+    # Получаем список посетителей
     visitors = get_visitors()
+
+    # Проверяем, что список содержит только что добавленного посетителя
     assert len(visitors) == 1
-    assert visitors[0][1] == "Test Visitor"
+    assert visitors[0][0] == visitor_id
+    assert visitors[0][1] == f"Test Visitor {timestamp}"
+
+    conn.close()
 
 def test_acquire_artwork(setup_db, sample_artist):
     """Тест добавления новой картины."""

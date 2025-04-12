@@ -5,7 +5,10 @@ import sqlite3
 DATABASE = "art_gallery.db"
 
 def get_connection():
+    """Создает соединение с включенным lastrowid"""
     conn = sqlite3.connect(DATABASE)
+    # Убедимся что lastrowid будет работать
+    conn.isolation_level = None  # Автокоммит отключен
     return conn
 
 def initialize_db():
