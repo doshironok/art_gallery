@@ -164,7 +164,8 @@ def test_restoration_process(setup_db, sample_artwork):
     restoration_id = record_restoration_state(
         artwork_id=sample_artwork,
         restorer_name="Anna Restorer",
-        condition_before="Paint peeling"
+        condition_before="Paint peeling",
+        cost=100.0
     )
     assert isinstance(restoration_id, int) and restoration_id > 0
 
@@ -212,10 +213,9 @@ def test_restoration_process(setup_db, sample_artwork):
     cursor.execute('''
         UPDATE Restoration SET 
         end_date = ?,
-        condition_after = ?,
-        cost = ?
+        condition_after = ?
         WHERE id = ?
-    ''', (date.today(), "Excellent condition", 100.0, restoration_id))
+    ''', (date.today(), "Excellent condition", restoration_id))
     conn.commit()
     conn.close()
 

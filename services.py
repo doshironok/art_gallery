@@ -86,21 +86,25 @@ def acquire_artwork(title: str, year_created: int, technique: str, dimensions: s
             conn.close()
 
 # 2. Фиксация состояния перед реставрацией
-def record_restoration_state(artwork_id: int, restorer_name: str, condition_before: str):
+def record_restoration_state(artwork_id: int, restorer_name: str, condition_before: str, cost: float, end_date=None):
     """Записывает информацию о начале реставрации"""
     try:
         if not isinstance(artwork_id, int) or artwork_id <= 0:
             raise ValidationError("Некорректный ID картины")
         if not restorer_name:
             raise ValidationError("Имя реставратора обязательно")
+        if not isinstance(cost, (int, float)) or cost < 0:
+            raise ValidationError("Стоимость реставрации должна быть положительным числом")
+        if end_date is not None and not isinstance(end_date, date):
+            raise ValidationError("Дата окончания должна быть объектом date или None")
 
         def operation(cursor):
             cursor.execute('''
-                INSERT INTO Restoration (artwork_id, restorer_name, start_date, 
-                                       condition_before, condition_after)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (artwork_id, restorer_name, date.today(),
-                  condition_before, "Restoration in progress"))
+                INSERT INTO Restoration (artwork_id, restorer_name, start_date, end_date,
+                                         cost, condition_before, condition_after)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (artwork_id, restorer_name, date.today(), end_date,
+                  cost, condition_before, "Restoration in progress"))
             return cursor.lastrowid
 
         return _execute_db_operation(operation)
@@ -108,6 +112,7 @@ def record_restoration_state(artwork_id: int, restorer_name: str, condition_befo
         raise
     except Exception as e:
         raise ArtGalleryError(f"Ошибка при записи состояния реставрации: {str(e)}")
+
 
 
 # 3. Просмотр информации о картинах
@@ -598,7 +603,7 @@ def get_visitors():
     """Возвращает список всех посетителей"""
     try:
         def operation(cursor):
-            cursor.execute('SELECT * FROM Visitor ORDER BY registration_date DESC')
+            cursor.execute('SELECT * FROM Visitor ORDER BY id ASC')
             return cursor.fetchall()
 
         return _execute_db_operation(operation)
