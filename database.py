@@ -20,7 +20,7 @@ def initialize_db():
     cursor.execute('''
             CREATE TABLE IF NOT EXISTS Artwork (
                 id INTEGER PRIMARY KEY,
-                title TEXT,
+                title TEXT NOT NULL,
                 year_created INTEGER,
                 technique TEXT,
                 dimensions TEXT,
@@ -28,8 +28,9 @@ def initialize_db():
                 genre TEXT,
                 current_location TEXT,
                 status TEXT,
-                artist_id INTEGER,
-                price REAL
+                artist_id INTEGER NOT NULL,
+                price REAL NOT NULL,
+                FOREIGN KEY (artist_id) REFERENCES Artist(id)
             )
         ''')
 
@@ -200,3 +201,6 @@ def initialize_db():
 
     conn.commit()
     conn.close()
+
+
+

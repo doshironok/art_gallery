@@ -49,7 +49,8 @@ def sample_artwork(sample_artist):
         description="Test",
         genre="Portrait",
         artist_id=sample_artist,
-        provenance_entry="Test provenance"
+        provenance_entry="Test provenance",
+        price=100.0
     )
     artworks = get_artworks()
     return artworks[0][0]  # Возвращаем ID картины
@@ -116,7 +117,8 @@ def test_acquire_artwork(setup_db, sample_artist):
         description="Test description",
         genre="Landscape",
         artist_id=sample_artist,
-        provenance_entry="Test provenance"
+        provenance_entry="Test provenance",
+        price=100.0
     )
     artworks = get_artworks()
     assert len(artworks) == 1

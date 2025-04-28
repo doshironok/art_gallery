@@ -4,9 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e0d972d9-9c2a-4703-9622-48c4c40d6c5d" name="Changes" comment="Обновление services.py (методы, обновляющие состояние картины во время реставрации, изменение сортировки посетителей), Базы данных и интеграционных тестов.">
+    <list default="true" id="e0d972d9-9c2a-4703-9622-48c4c40d6c5d" name="Changes" comment="Обновление модели Artwork в models.py, services.py (acquire_artwork(), sell_artwork(), rent_artwork()), Базы данных.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/art_gallery.db" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/database.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test_integration.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_integration.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,17 +53,18 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python tests.Python tests in test_integration.py.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.Python tests in test_services.py.executor&quot;: &quot;Run&quot;,
-    &quot;Python.database.executor&quot;: &quot;Run&quot;,
-    &quot;Python.services.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python tests.Python tests in test_integration.py.executor": "Run",
+    "Python tests.Python tests in test_services.py.executor": "Run",
+    "Python.database.executor": "Run",
+    "Python.models.executor": "Run",
+    "Python.services.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
-}</component>
+}]]></component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -158,7 +161,15 @@
       <option name="project" value="LOCAL" />
       <updated>1745835827764</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Обновление модели Artwork в models.py, services.py (acquire_artwork(), sell_artwork(), rent_artwork()), Базы данных.">
+      <option name="closed" value="true" />
+      <created>1745837377683</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1745837377683</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -181,6 +192,7 @@
     <MESSAGE value="Обновление services.py (обработчики ошибок), БАзы данных и создание тестовых сценариев." />
     <MESSAGE value="Обновление services.py, Бfзы данных и создание интеграционных тестовых сценариев." />
     <MESSAGE value="Обновление services.py (методы, обновляющие состояние картины во время реставрации, изменение сортировки посетителей), Базы данных и интеграционных тестов." />
-    <option name="LAST_COMMIT_MESSAGE" value="Обновление services.py (методы, обновляющие состояние картины во время реставрации, изменение сортировки посетителей), Базы данных и интеграционных тестов." />
+    <MESSAGE value="Обновление модели Artwork в models.py, services.py (acquire_artwork(), sell_artwork(), rent_artwork()), Базы данных." />
+    <option name="LAST_COMMIT_MESSAGE" value="Обновление модели Artwork в models.py, services.py (acquire_artwork(), sell_artwork(), rent_artwork()), Базы данных." />
   </component>
 </project>

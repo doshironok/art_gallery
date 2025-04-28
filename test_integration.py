@@ -34,11 +34,11 @@ def sample_artwork(setup_db, sample_artist):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO Artwork (title, year_created, technique, dimensions, 
-                           description, genre, current_location, status, artist_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO Artwork (title, year_created, technique, dimensions,
+                           description, genre, current_location, status, artist_id, price)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', ("Sample Artwork", 2020, "Oil", "50x70", "Test", "Portrait",
-          "Gallery Storage", "Acquired", sample_artist))
+          "Gallery Storage", "Acquired", sample_artist, 1000.0))
     artwork_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -76,7 +76,8 @@ def test_full_artwork_lifecycle(setup_db, sample_artist):
         description="Impressive artwork",
         genre="Abstract",
         artist_id=sample_artist,
-        provenance_entry="Private collection"
+        provenance_entry="Private collection",
+        price=1000.0
     )
 
     # Проверяем что ID валиден
@@ -131,7 +132,7 @@ def test_full_artwork_lifecycle(setup_db, sample_artist):
     sell_artwork(
         artwork_id=artwork_id,
         buyer_name=f"Private Collector {timestamp}",
-        price=10000.0
+        sale_price=10000.0
     )
 
     # Проверка статуса
