@@ -18,19 +18,22 @@ def initialize_db():
 
     # Artwork
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS Artwork (
-            id INTEGER PRIMARY KEY,
-            title TEXT,
-            year_created INTEGER,
-            technique TEXT,
-            dimensions TEXT,
-            description TEXT,
-            genre TEXT,
-            current_location TEXT,
-            status TEXT,
-            artist_id INTEGER
-        )
-    ''')
+            CREATE TABLE IF NOT EXISTS Artwork (
+                id INTEGER PRIMARY KEY,
+                title TEXT,
+                year_created INTEGER,
+                technique TEXT,
+                dimensions TEXT,
+                description TEXT,
+                genre TEXT,
+                current_location TEXT,
+                status TEXT,
+                artist_id INTEGER,
+                price REAL
+            )
+        ''')
+
+
 
     # Artist
     cursor.execute('''

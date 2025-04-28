@@ -6,7 +6,7 @@
 from datetime import date
 class Artwork:
     def __init__(self, id=None, title=None, year_created=None, technique=None, dimensions=None,
-                 description=None, genre=None, current_location=None, status=None, artist_id=None):
+                 description=None, genre=None, current_location=None, status=None, artist_id=None, price=None):
         self.id = id
         self.title = title
         self.year_created = year_created
@@ -17,6 +17,7 @@ class Artwork:
         self.current_location = current_location
         self.status = status
         self.artist_id = artist_id
+        self.price = price
 
 class Artist:
     def __init__(self, id=None, name=None, biography=None, awards=None, exhibitions_participated=None):

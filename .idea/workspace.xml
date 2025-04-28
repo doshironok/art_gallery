@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e0d972d9-9c2a-4703-9622-48c4c40d6c5d" name="Changes" comment="Обновление services.py, Бfзы данных и создание интеграционных тестовых сценариев.">
+    <list default="true" id="e0d972d9-9c2a-4703-9622-48c4c40d6c5d" name="Changes" comment="Обновление services.py (методы, обновляющие состояние картины во время реставрации, изменение сортировки посетителей), Базы данных и интеграционных тестов.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/art_gallery.db" beforeDir="false" afterPath="$PROJECT_DIR$/art_gallery.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services.py" beforeDir="false" afterPath="$PROJECT_DIR$/services.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_integration.py" beforeDir="false" afterPath="$PROJECT_DIR$/test_integration.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/database.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -152,7 +150,15 @@
       <option name="project" value="LOCAL" />
       <updated>1744484185417</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Обновление services.py (методы, обновляющие состояние картины во время реставрации, изменение сортировки посетителей), Базы данных и интеграционных тестов.">
+      <option name="closed" value="true" />
+      <created>1745835827764</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1745835827764</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -174,6 +180,7 @@
     <MESSAGE value="Пятый коммит: обновление services.py (функция get_visitors())" />
     <MESSAGE value="Обновление services.py (обработчики ошибок), БАзы данных и создание тестовых сценариев." />
     <MESSAGE value="Обновление services.py, Бfзы данных и создание интеграционных тестовых сценариев." />
-    <option name="LAST_COMMIT_MESSAGE" value="Обновление services.py, Бfзы данных и создание интеграционных тестовых сценариев." />
+    <MESSAGE value="Обновление services.py (методы, обновляющие состояние картины во время реставрации, изменение сортировки посетителей), Базы данных и интеграционных тестов." />
+    <option name="LAST_COMMIT_MESSAGE" value="Обновление services.py (методы, обновляющие состояние картины во время реставрации, изменение сортировки посетителей), Базы данных и интеграционных тестов." />
   </component>
 </project>
