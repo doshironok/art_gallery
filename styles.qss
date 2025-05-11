@@ -1,0 +1,106 @@
+QWidget {
+    font: 12pt "Trebuchet MS";
+    background-color: #F5F0FF;
+    color: #4B0082;
+}
+
+QLabel {
+    font: bold 10pt "Trebuchet MS";
+    color: #6A4B9D;
+}
+
+QTabWidget::pane {
+    border: 1px solid #C0A8E9;
+    border-radius: 4px;
+}
+
+QTabBar::tab {
+    font: 10pt "Trebuchet MS";
+    background: #E6E6FA;
+    border: 1px solid #C0A8E9;
+    padding: 8px;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+
+QTabBar::tab:selected {
+    font: bold 10pt "Trebuchet MS";
+    background: #D8BFD8;
+    border-bottom-color: #F5F0FF;
+}
+
+QTextEdit, QComboBox, QSpinBox, QDateEdit, QLineEdit, QDoubleSpinBox {
+    background-color: #FFFFFF;
+    border: 1px solid #C0A8E9;
+    border-radius: 3px;
+    padding: 2px;
+}
+
+QPushButton {
+    background-color: #D8BFD8;
+    border: 1px solid #9F88B9;
+    border-radius: 4px;
+    padding: 5px 10px;
+}
+
+QPushButton:hover {
+    background-color: #C0A8E9;
+}
+
+QPushButton:pressed {
+    background-color: #9F88B9;
+}
+
+QFormLayout {
+    margin: 10px;
+    spacing: 8px;
+}
+
+QMessageBox, QDialog {
+    background-color: #F5F0FF;
+}
+
+QVBoxLayout, QFormLayout {
+    margin: 10px;
+}
+
+QTableWidget {
+    font: 10pt "Trebuchet MS";
+    background-color: #FFFFFF;
+    alternate-background-color: #F8F4FF;
+    gridline-color: #E0D4F5;
+    border: 1px solid #C0A8E9;
+}
+
+QHeaderView::section {
+    background-color: #E6E6FA;
+    color: #4B0082;
+    padding: 4px;
+    border: 1px solid #C0A8E9;
+}
+
+QTableWidgetItem {
+    padding: 4px;
+}
+
+QScrollBar:vertical {
+    background: #F5F0FF;
+    width: 12px;
+}
+
+QScrollBar::handle:vertical {
+    background: #D8BFD8;
+    min-height: 20px;
+}
+
+QPushButton {
+            font: bold 10pt "Trebuchet MS";
+            background-color: #e6d5ff;
+            color: #111111;
+            border: 1px solid #d0b0ff;
+            border-radius: 4px;
+            padding: 5px;
+            transition: background-color 0.3s;
+        }
+
+QPushButton:hover { background-color: #d0b0ff; }
