@@ -809,14 +809,15 @@ class ArtGalleryApp(QWidget):
 
             table = QTableWidget()
             table.setRowCount(len(reviews))
-            table.setColumnCount(4)
-            table.setHorizontalHeaderLabels(["ID", "Текст отзыва", "Имя посетителя", "Дата"])
+            table.setColumnCount(5)
+            table.setHorizontalHeaderLabels(["ID", "ID выставки", "Текст отзыва", "Имя посетителя", "Дата"])
 
             for row, review in enumerate(reviews):
                 table.setItem(row, 0, QTableWidgetItem(str(review[0])))
                 table.setItem(row, 1, QTableWidgetItem(review[1]))
                 table.setItem(row, 2, QTableWidgetItem(review[2]))
                 table.setItem(row, 3, QTableWidgetItem(str(review[3])))
+                table.setItem(row, 4, QTableWidgetItem(str(review[4])))
 
             layout.addWidget(table)
 
@@ -842,14 +843,15 @@ class ArtGalleryApp(QWidget):
 
             table = QTableWidget()
             table.setRowCount(len(reviews))
-            table.setColumnCount(4)
-            table.setHorizontalHeaderLabels(["ID", "Текст отзыва", "Название издания", "Дата"])
+            table.setColumnCount(5)
+            table.setHorizontalHeaderLabels(["ID", "ID выставки", "Текст отзыва", "Название издания", "Дата"])
 
             for row, review in enumerate(reviews):
                 table.setItem(row, 0, QTableWidgetItem(str(review[0])))
                 table.setItem(row, 1, QTableWidgetItem(review[1]))
                 table.setItem(row, 2, QTableWidgetItem(review[2]))
                 table.setItem(row, 3, QTableWidgetItem(str(review[3])))
+                table.setItem(row, 4, QTableWidgetItem(str(review[4])))
 
             layout.addWidget(table)
 
