@@ -561,19 +561,6 @@ class ArtGalleryApp(QWidget):
         except Exception as e:
             self.show_error_message("Ошибка", str(e))
 
-    def show_error_message(self, title, message):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setWindowTitle(title)
-        msg.setText(message)
-        msg.exec_()
-
-    def show_info_message(self, title, message):
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setWindowTitle(title)
-        msg.setText(message)
-        msg.exec_()
 
     def open_rent_window(self):
         rent_window = QDialog()
@@ -838,12 +825,13 @@ class ArtGalleryApp(QWidget):
 
             dialog = QDialog(self)
             dialog.setWindowTitle("Список реставраций")
+            dialog.setGeometry(200, 200, 1000, 400)
             layout = QVBoxLayout()
 
             table = QTableWidget()
             table.setRowCount(len(restorations))
             table.setColumnCount(len(restorations[0]))
-            table.setHorizontalHeaderLabels(["ID", "ID Картины", "Реставратор", "Дата начала", "Дата окончания", "Стоимость"])
+            table.setHorizontalHeaderLabels(["ID", "ID Картины", "Реставратор", "Дата начала", "Дата окончания", "Стоимость", "Состояние до", "Состояние после"])
 
             for row_idx, row_data in enumerate(restorations):
                 for col_idx, item in enumerate(row_data):
@@ -893,12 +881,13 @@ class ArtGalleryApp(QWidget):
 
             dialog = QDialog(self)
             dialog.setWindowTitle("Список документов")
+            dialog.setGeometry(200, 200, 1000, 400)
             layout = QVBoxLayout()
 
             table = QTableWidget()
             table.setRowCount(len(documents))
             table.setColumnCount(len(documents[0]))
-            table.setHorizontalHeaderLabels(["ID Картины", "Тип документа", "Дата выпуска", "Файл"])
+            table.setHorizontalHeaderLabels(["ID", "ID Картины", "Тип документа", "Дата выпуска", "Файл"])
 
             for row_idx, row_data in enumerate(documents):
                 for col_idx, item in enumerate(row_data):
@@ -971,11 +960,6 @@ class ArtGalleryApp(QWidget):
         except Exception as e:
             self.show_error_message("Ошибка", str(e))
 
-    def show_error_message(self, title, message):
-        QMessageBox.critical(self, title, message)
-
-    def show_info_message(self, title, message):
-        QMessageBox.information(self, title, message)
 
     def add_visitor_review(self):
         review_window = QDialog()
@@ -1229,11 +1213,13 @@ class ArtGalleryApp(QWidget):
                 raise ValueError("Все поля должны быть положительными числами.")
 
             services.add_restoration_material(restoration_id, material_id, quantity_used)
-            print(f"Материал с ID {material_id} для реставрации добавлен в количестве {quantity_used}.")
-            self.show_success_message(f"Материал с ID {material_id} добавлен успешно.")
+            self.show_info_message("Успех", f"Материал с ID {material_id} добавлен успешно.")
         except ValueError as e:
-            print(f"Ошибка: {e}")
-            self.show_error_message("Ошибка при добавлении материала.")
+            self.show_error_message("Ошибка валидации", str(e))
+        except services.DatabaseError as e:
+            self.show_error_message("Ошибка базы данных", str(e))
+        except Exception as e:
+            self.show_error_message("Неизвестная ошибка", str(e))
 
     def open_add_document_dialog(self):
         dialog = QDialog(self)
@@ -1256,15 +1242,28 @@ class ArtGalleryApp(QWidget):
         dialog.exec_()
 
     def add_document(self):
-        artwork_id = int(self.artwork_id_input.text())
+        artwork_id_text = self.artwork_id_input.text()
         document_type = self.document_type_input.text()
         file_path = self.file_path_input.text()
 
+        if not artwork_id_text.isdigit():
+            self.show_error_message("Ошибка", "ID картины должно быть числом.")
+            return
+
+        if not document_type or not file_path:
+            self.show_error_message("Ошибка", "Все поля должны быть заполнены.")
+            return
+
         try:
+            artwork_id = int(artwork_id_text)
             services.add_document(artwork_id, document_type, file_path)
-            print(f"Документ о подлинности для картины с ID {artwork_id} добавлен")
+            self.show_info_message("Успех", f"Документ о подлинности для картины с ID {artwork_id} успешно добавлен.")
+        except services.ValidationError as e:
+            self.show_error_message("Ошибка валидации", str(e))
+        except services.DatabaseError as e:
+            self.show_error_message("Ошибка базы данных", str(e))
         except Exception as e:
-            print(f"Ошибка: {e}")
+            self.show_error_message("Неизвестная ошибка", str(e))
 
     def open_add_material_dialog(self):
         dialog = QDialog(self)
