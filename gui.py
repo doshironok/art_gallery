@@ -5,6 +5,16 @@ from PyQt5.QtWidgets import (QWidget, QLabel, QTabWidget, QTextEdit,
 from PyQt5.QtCore import QDate
 import services
 
+STATUS_TRANSLATION = {
+        "Acquired": "Приобретена",
+        "Sold": "Продана",
+        "Rented": "Арендована",
+        "Restored": "Отреставрирована",
+        "In Restoration": "На реставрации",
+        "In Storage": "На хранении",
+        "On Exhibition": "На выставке"
+    }
+
 class ArtGalleryApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -32,14 +42,24 @@ class ArtGalleryApp(QWidget):
     def create_artist_tab(self):
         widget = QWidget()
         layout = QVBoxLayout()
+
         refresh_button = QPushButton("Показать художников")
         refresh_button.clicked.connect(self.show_artists)
+
+        add_artist_button = QPushButton("Добавить художника")
+        add_artist_button.clicked.connect(self.open_add_artist_dialog)
+
+        delete_artist_button = QPushButton("Удалить художника")
+        delete_artist_button.clicked.connect(self.open_delete_artist_dialog)
 
         self.artist_list = QTextEdit()
         self.artist_list.setReadOnly(True)
 
         layout.addWidget(refresh_button)
+        layout.addWidget(add_artist_button)
+        layout.addWidget(delete_artist_button)
         layout.addWidget(self.artist_list)
+
         widget.setLayout(layout)
         return widget
 
@@ -51,6 +71,74 @@ class ArtGalleryApp(QWidget):
                 self.artist_list.append(str(artist))
         except Exception as e:
             self.artist_list.setText(f"Ошибка: {e}")
+
+    def open_add_artist_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Добавить художника")
+
+        form_layout = QFormLayout()
+
+        name_input = QLineEdit()
+        biography_input = QTextEdit()
+
+        submit_button = QPushButton("Добавить художника")
+        submit_button.clicked.connect(lambda: self.add_artist(dialog, name_input, biography_input))
+
+        form_layout.addRow("Имя:", name_input)
+        form_layout.addRow("Биография:", biography_input)
+        form_layout.addRow(submit_button)
+
+        dialog.setLayout(form_layout)
+        dialog.exec_()
+
+    def add_artist(self, dialog, name_input, biography_input):
+        try:
+            name = name_input.text()
+            biography = biography_input.toPlainText()
+
+            if not name or not biography:
+                self.show_error_message("Ошибка", "Все поля должны быть заполнены.")
+                return
+
+            artist_id = services.add_artist(name, biography)
+            self.show_info_message("Успех", f"Художник с ID {artist_id} добавлен.")
+            dialog.accept()
+        except services.ValidationError as e:
+            self.show_error_message("Ошибка валидации", str(e))
+        except services.DatabaseError as e:
+            self.show_error_message("Ошибка базы данных", str(e))
+        except Exception as e:
+            self.show_error_message("Неизвестная ошибка", str(e))
+
+    def open_delete_artist_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Удалить художника")
+
+        form_layout = QFormLayout()
+
+        artist_id_input = QLineEdit()
+
+        delete_button = QPushButton("Удалить художника")
+        delete_button.clicked.connect(lambda: self.delete_artist(dialog, artist_id_input))
+
+        form_layout.addRow("ID художника:", artist_id_input)
+        form_layout.addRow(delete_button)
+
+        dialog.setLayout(form_layout)
+        dialog.exec_()
+
+    def delete_artist(self, dialog, artist_id_input):
+        try:
+            artist_id = int(artist_id_input.text())
+            services.delete_artist(artist_id)
+            self.show_info_message("Успех", f"Художник с ID {artist_id} удален.")
+            dialog.accept()
+        except services.ValidationError as e:
+            self.show_error_message("Ошибка валидации", str(e))
+        except services.DatabaseError as e:
+            self.show_error_message("Ошибка базы данных", str(e))
+        except Exception as e:
+            self.show_error_message("Неизвестная ошибка", str(e))
 
     def create_artwork_tab(self):
         widget = QWidget()
@@ -64,7 +152,8 @@ class ArtGalleryApp(QWidget):
             QPushButton("Добавить картину"),
             QPushButton("Показать все картины"),
             QPushButton("Обновить статус картины"),
-            QPushButton("Обновить стоимость картины")
+            QPushButton("Обновить стоимость картины"),
+            QPushButton("Удалить картину")  # Новая кнопка
         ]
 
         # Настраиваем кнопки
@@ -82,6 +171,7 @@ class ArtGalleryApp(QWidget):
         buttons[1].clicked.connect(self.show_all_artworks_dialog)
         buttons[2].clicked.connect(self.open_update_status_dialog)
         buttons[3].clicked.connect(self.open_update_price_dialog)
+        buttons[4].clicked.connect(self.open_delete_artwork_dialog)  # Подключаем новый метод
 
         return widget
 
@@ -144,6 +234,50 @@ class ArtGalleryApp(QWidget):
         except Exception as e:
             print(f"Ошибка: {e}")
 
+    def open_delete_artwork_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Удалить картину")
+
+        form_layout = QFormLayout()
+
+        artwork_id_input = QLineEdit()
+
+        delete_button = QPushButton("Удалить картину")
+        delete_button.clicked.connect(lambda: self.delete_artwork(dialog, artwork_id_input))
+
+        form_layout.addRow("ID картины:", artwork_id_input)
+        form_layout.addRow(delete_button)
+
+        dialog.setLayout(form_layout)
+        dialog.exec_()
+
+    def delete_artwork(self, dialog, artwork_id_input):
+        try:
+            artwork_id = int(artwork_id_input.text())
+            services.delete_artwork(artwork_id)
+            self.show_info_message("Успех", f"Картина с ID {artwork_id} удалена.")
+            dialog.accept()
+        except services.ValidationError as e:
+            self.show_error_message("Ошибка валидации", str(e))
+        except services.DatabaseError as e:
+            self.show_error_message("Ошибка базы данных", str(e))
+        except Exception as e:
+            self.show_error_message("Неизвестная ошибка", str(e))
+
+    def show_error_message(self, title, message):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setWindowTitle(title)
+        msg.setText(message)
+        msg.exec_()
+
+    def show_info_message(self, title, message):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle(title)
+        msg.setText(message)
+        msg.exec_()
+
     def show_all_artworks_dialog(self):
         try:
             artworks = services.get_artworks()
@@ -156,12 +290,19 @@ class ArtGalleryApp(QWidget):
             table = QTableWidget()
             table.setRowCount(len(artworks))
             table.setColumnCount(len(artworks[0]) if artworks else 0)
-            table.setHorizontalHeaderLabels(["ID", "Название", "Год", "Техника", "Размеры", "Описание",
-                                             "Жанр", "Локация", "Статус", "ID Художника", "Цена"])
+            table.setHorizontalHeaderLabels(
+                ["ID", "Название", "Год", "Техника", "Размеры", "Описание",
+                 "Жанр", "Локация", "Статус", "ID Художника", "Цена"]
+            )
 
             for row_idx, row_data in enumerate(artworks):
                 for col_idx, item in enumerate(row_data):
-                    table.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
+                    # Переводим статус на русский язык
+                    if col_idx == 8:  # Индекс столбца "Статус"
+                        translated_status = STATUS_TRANSLATION.get(item, item)
+                        table.setItem(row_idx, col_idx, QTableWidgetItem(translated_status))
+                    else:
+                        table.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
 
             layout.addWidget(table)
             dialog.setLayout(layout)
@@ -193,11 +334,17 @@ class ArtGalleryApp(QWidget):
         try:
             artwork_id = int(artwork_id_input.text())
             new_status = status_selector.currentText()
+
+            # Проверяем, что статус существует в словаре перевода
+            if new_status not in STATUS_TRANSLATION:
+                raise services.ValidationError("Выбран некорректный статус.")
+
             services.update_artwork_status(artwork_id, new_status)
-            print(f"Статус картины с ID {artwork_id} обновлен на '{new_status}'")
+            self.show_info_message("Успех",
+                                   f"Статус картины с ID {artwork_id} обновлен на '{STATUS_TRANSLATION[new_status]}'.")
             dialog.accept()
         except Exception as e:
-            print(f"Ошибка: {e}")
+            self.show_error_message("Ошибка", str(e))
 
     def open_update_price_dialog(self):
         dialog = QDialog(self)
@@ -340,17 +487,20 @@ class ArtGalleryApp(QWidget):
 
     def create_sale_tab(self):
         widget = QWidget()
-        main_layout = QVBoxLayout(widget)  # Главный вертикальный layout
+        main_layout = QVBoxLayout(widget)
 
         # Создаем горизонтальный контейнер для кнопок
         button_row = QHBoxLayout()
 
         # Создаем кнопки с фиксированной высотой
-        rent_button = QPushButton("Оформить аренду картины")
-        sell_button = QPushButton("Продать картину")
+        buttons = [
+            QPushButton("Оформить аренду картины"),
+            QPushButton("Продать картину"),
+            QPushButton("Показать все продажи")  # Новая кнопка
+        ]
 
         # Настраиваем кнопки
-        for btn in [rent_button, sell_button]:
+        for btn in buttons:
             btn.setFixedHeight(120)  # Фиксированная высота
             btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  # Растягиваем по горизонтали
             button_row.addWidget(btn)
@@ -360,8 +510,9 @@ class ArtGalleryApp(QWidget):
         main_layout.addLayout(button_row)
 
         # Подключаем сигналы
-        rent_button.clicked.connect(self.open_rent_window)
-        sell_button.clicked.connect(self.open_sell_window)
+        buttons[0].clicked.connect(self.open_rent_window)
+        buttons[1].clicked.connect(self.open_sell_window)
+        buttons[2].clicked.connect(self.show_sales)  # Подключаем новый метод
 
         return widget
 
@@ -427,7 +578,6 @@ class ArtGalleryApp(QWidget):
     def open_rent_window(self):
         rent_window = QDialog()
         rent_window.setWindowTitle("Оформить аренду картины")
-
         layout = QFormLayout()
 
         self.rent_artwork_id_input = QLineEdit()
@@ -438,10 +588,7 @@ class ArtGalleryApp(QWidget):
 
         self.rent_end_date_input = QDateEdit()
         self.rent_end_date_input.setCalendarPopup(True)
-        self.rent_end_date_input.setDate(QDate.currentDate())
-
-        self.rent_fee_input = QLineEdit()
-        self.rent_fee_input.setPlaceholderText("Введите стоимость аренды")
+        self.rent_end_date_input.setDate(QDate.currentDate().addDays(30))  # По умолчанию +30 дней
 
         rent_button = QPushButton("Оформить аренду")
         rent_button.clicked.connect(self.rent_artwork_button_clicked)
@@ -450,57 +597,120 @@ class ArtGalleryApp(QWidget):
         layout.addRow("Имя арендатора:", self.rent_renter_name_input)
         layout.addRow("Дата начала аренды:", self.rent_start_date_input)
         layout.addRow("Дата окончания аренды:", self.rent_end_date_input)
-        layout.addRow("Стоимость аренды:", self.rent_fee_input)
         layout.addRow(rent_button)
 
         rent_window.setLayout(layout)
         rent_window.exec_()
 
     def rent_artwork_button_clicked(self):
-        artwork_id = int(self.rent_artwork_id_input.text())
+        artwork_id_text = self.rent_artwork_id_input.text()
         renter_name = self.rent_renter_name_input.text()
         start_date = self.rent_start_date_input.date().toString("yyyy-MM-dd")
         end_date = self.rent_end_date_input.date().toString("yyyy-MM-dd")
-        rental_fee_text = self.rent_fee_input.text()
 
-        if not renter_name or not start_date or not end_date or not rental_fee_text:
-            self.show_error_message("Ошибка", "Все поля должны быть заполнены.")
-            return
-        try:
-            rental_fee = float(rental_fee_text)
-            if rental_fee <= 0:
-                self.show_error_message("Ошибка", "Стоимость аренды должна быть положительным числом.")
-                return
-        except ValueError:
-            self.show_error_message("Ошибка", "Введите корректную стоимость аренды.")
+        if not artwork_id_text.isdigit():
+            self.show_error_message("Ошибка", "ID картины должно быть числом.")
             return
 
+        artwork_id = int(artwork_id_text)
+
+        if not renter_name:
+            self.show_error_message("Ошибка", "Имя арендатора обязательно.")
+            return
+
+        if start_date >= end_date:
+            self.show_error_message("Ошибка", "Дата окончания аренды должна быть позже даты начала.")
+            return
+
         try:
-            services.rent_artwork(artwork_id, renter_name, start_date, end_date, rental_fee)
+            services.rent_artwork(artwork_id, renter_name, start_date, end_date)
             self.show_info_message("Успех", f"Картина с ID {artwork_id} успешно арендована.")
+        except Exception as e:
+            self.show_error_message("Ошибка", str(e))
+
+    def show_sales(self):
+        try:
+            sales = services.get_sales()
+            if not sales:
+                self.show_info_message("Информация", "Нет записей о продажах.")
+                return
+
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Список продаж")
+            layout = QVBoxLayout()
+
+            table = QTableWidget()
+            table.setRowCount(len(sales))
+            table.setColumnCount(len(sales[0]))
+            table.setHorizontalHeaderLabels(
+                ["ID Продажи", "Картина", "Покупатель", "Дата продажи", "Цена"]
+            )
+
+            for row_idx, row_data in enumerate(sales):
+                for col_idx, item in enumerate(row_data):
+                    table.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
+
+            layout.addWidget(table)
+            dialog.setLayout(layout)
+            dialog.exec_()
         except Exception as e:
             self.show_error_message("Ошибка", str(e))
 
     def create_movement_tab(self):
         widget = QWidget()
-        main_layout = QVBoxLayout(widget)  # Главный вертикальный layout
+        main_layout = QVBoxLayout(widget)
 
-        # Создаем кнопку с настройками
-        record_movement_button = QPushButton("Записать перемещение картины")
-        record_movement_button.setFixedHeight(120)  # Фиксированная высота
-        record_movement_button.setSizePolicy(
-            QSizePolicy.Expanding,  # Растягиваем по горизонтали
-            QSizePolicy.Fixed  # Фиксированная вертикаль
-        )
+        # Создаем горизонтальный контейнер для кнопок
+        button_row = QHBoxLayout()
 
-        # Добавляем распорку и кнопку
-        main_layout.addStretch()  # Занимает все свободное пространство сверху
-        main_layout.addWidget(record_movement_button)
+        # Создаем кнопки с фиксированной высотой
+        buttons = [
+            QPushButton("Показать все перемещения"),
+            QPushButton("Записать перемещение картины")
+        ]
 
-        # Подключаем сигнал
-        record_movement_button.clicked.connect(self.open_movement_window)
+        # Настраиваем кнопки
+        for btn in buttons:
+            btn.setFixedHeight(120)  # Фиксированная высота
+            btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  # Растягиваем по горизонтали
+            button_row.addWidget(btn)
+
+        # Добавляем "распорку" чтобы прижать кнопки к низу
+        main_layout.addStretch()
+        main_layout.addLayout(button_row)
+
+        # Подключаем сигналы
+        buttons[0].clicked.connect(self.show_movements)
+        buttons[1].clicked.connect(self.open_movement_window)
 
         return widget
+
+    def show_movements(self):
+        try:
+            movements = services.get_movements()
+            if not movements:
+                self.show_info_message("Информация", "Нет записей о перемещениях.")
+                return
+
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Список перемещений")
+            dialog.setGeometry(200, 200, 1000, 400)
+            layout = QVBoxLayout()
+
+            table = QTableWidget()
+            table.setRowCount(len(movements))
+            table.setColumnCount(len(movements[0]))
+            table.setHorizontalHeaderLabels(["ID", "ID Картины", "Откуда", "Куда", "Дата", "Цель", "Ответственный"])
+
+            for row_idx, row_data in enumerate(movements):
+                for col_idx, item in enumerate(row_data):
+                    table.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
+
+            layout.addWidget(table)
+            dialog.setLayout(layout)
+            dialog.exec_()
+        except Exception as e:
+            self.show_error_message("Ошибка", str(e))
 
     def open_movement_window(self):
         movement_window = QDialog()
@@ -601,7 +811,8 @@ class ArtGalleryApp(QWidget):
         button_row = QHBoxLayout()
         buttons = [
             QPushButton("Начать реставрацию"),
-            QPushButton("Добавить материал для реставрации")
+            QPushButton("Добавить материал для реставрации"),
+            QPushButton("Показать все реставрации")
         ]
 
         for btn in buttons:
@@ -614,31 +825,90 @@ class ArtGalleryApp(QWidget):
 
         buttons[0].clicked.connect(self.record_restoration_state)
         buttons[1].clicked.connect(self.add_restoration_material)
+        buttons[2].clicked.connect(self.show_restorations)
 
         return widget
+
+    def show_restorations(self):
+        try:
+            restorations = services.get_restorations()
+            if not restorations:
+                self.show_info_message("Информация", "Нет записей о реставрациях.")
+                return
+
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Список реставраций")
+            layout = QVBoxLayout()
+
+            table = QTableWidget()
+            table.setRowCount(len(restorations))
+            table.setColumnCount(len(restorations[0]))
+            table.setHorizontalHeaderLabels(["ID", "ID Картины", "Реставратор", "Дата начала", "Дата окончания", "Стоимость"])
+
+            for row_idx, row_data in enumerate(restorations):
+                for col_idx, item in enumerate(row_data):
+                    table.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
+
+            layout.addWidget(table)
+            dialog.setLayout(layout)
+            dialog.exec_()
+        except Exception as e:
+            self.show_error_message("Ошибка", str(e))
 
     def create_document_tab(self):
         widget = QWidget()
         main_layout = QVBoxLayout(widget)
 
+        # Создаем горизонтальный контейнер для кнопок
         button_row = QHBoxLayout()
+
+        # Создаем кнопки с фиксированной высотой
         buttons = [
-            QPushButton("Добавить документ о подлинности"),
-            QPushButton("Добавить новый материал")
+            QPushButton("Показать все документы"),
+            QPushButton("Добавить документ о подлинности")
         ]
 
+        # Настраиваем кнопки
         for btn in buttons:
-            btn.setFixedHeight(120)
-            btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            btn.setFixedHeight(120)  # Фиксированная высота
+            btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  # Растягиваем по горизонтали
             button_row.addWidget(btn)
 
+        # Добавляем "распорку" чтобы прижать кнопки к низу
         main_layout.addStretch()
         main_layout.addLayout(button_row)
 
-        buttons[0].clicked.connect(self.open_add_document_dialog)
-        buttons[1].clicked.connect(self.open_add_material_dialog)
+        # Подключаем сигналы
+        buttons[0].clicked.connect(self.show_documents)
+        buttons[1].clicked.connect(self.open_add_document_dialog)
 
         return widget
+
+    def show_documents(self):
+        try:
+            documents = services.get_documents()
+            if not documents:
+                self.show_info_message("Информация", "Нет записей о документах.")
+                return
+
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Список документов")
+            layout = QVBoxLayout()
+
+            table = QTableWidget()
+            table.setRowCount(len(documents))
+            table.setColumnCount(len(documents[0]))
+            table.setHorizontalHeaderLabels(["ID Картины", "Тип документа", "Дата выпуска", "Файл"])
+
+            for row_idx, row_data in enumerate(documents):
+                for col_idx, item in enumerate(row_data):
+                    table.setItem(row_idx, col_idx, QTableWidgetItem(str(item)))
+
+            layout.addWidget(table)
+            dialog.setLayout(layout)
+            dialog.exec_()
+        except Exception as e:
+            self.show_error_message("Ошибка", str(e))
 
     def open_register_window(self):
         register_window = QDialog()
@@ -1024,3 +1294,5 @@ class ArtGalleryApp(QWidget):
             print(f"Новый материал {name} добавлен")
         except Exception as e:
             print(f"Ошибка: {e}")
+
+
