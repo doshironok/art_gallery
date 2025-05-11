@@ -133,16 +133,22 @@ def get_artworks():
 
 # 4. Учет стоимости картин
 def update_artwork_price(artwork_id: int, new_price: float):
-    """Обновляет стоимость картины"""
     try:
         if not isinstance(artwork_id, int) or artwork_id <= 0:
-            raise ValidationError("Некорректный ID картины")
+            raise ValidationError("Некорректный ID картины.")
         if not isinstance(new_price, (int, float)) or new_price < 0:
-            raise ValidationError("Цена должна быть положительным числом")
+            raise ValidationError("Цена должна быть положительным числом.")
 
         def operation(cursor):
-            cursor.execute('UPDATE Artwork SET price = ? WHERE id = ?',
-                           (new_price, artwork_id))
+            # Проверяем существование картины
+            cursor.execute('SELECT 1 FROM Artwork WHERE id = ?', (artwork_id,))
+            if not cursor.fetchone():
+                raise DatabaseError(f"Картина с ID {artwork_id} не существует.")
+
+            # Обновляем стоимость картины
+            cursor.execute('''
+                UPDATE Artwork SET price = ? WHERE id = ?
+            ''', (new_price, artwork_id))
             return cursor.rowcount
 
         return _execute_db_operation(operation)
@@ -258,12 +264,15 @@ def sell_artwork(artwork_id: int, buyer_name: str, sale_price: float):
         conn = get_connection()
         cursor = conn.cursor()
 
-        # Получаем текущую цену картины
+        # Проверка существования картины
         cursor.execute('SELECT price FROM Artwork WHERE id = ?', (artwork_id,))
-        artwork_price = cursor.fetchone()[0]
+        artwork_price = cursor.fetchone()
+        if not artwork_price:
+            raise DatabaseError(f"Картина с ID {artwork_id} не существует.")
 
-        if sale_price < artwork_price * 0.8:  # Нельзя продавать дешевле 80% от цены
-            raise ValidationError("Цена продажи не может быть ниже 80% от стоимости картины")
+        '''# Проверка минимальной цены продажи (не менее 80% от текущей стоимости)
+        if sale_price < artwork_price[0] * 0.8:
+            raise ValidationError("Цена продажи не может быть ниже 80% от стоимости картины.")'''
 
         # Добавляем запись о продаже
         cursor.execute('''
@@ -271,7 +280,7 @@ def sell_artwork(artwork_id: int, buyer_name: str, sale_price: float):
             VALUES (?, ?, ?, ?)
         ''', (artwork_id, buyer_name, date.today(), sale_price))
 
-        # Обновляем статус картины на "Sold"
+        # Обновляем статус картины на "Продана"
         cursor.execute('''
             UPDATE Artwork SET status = ? WHERE id = ?
         ''', ("Sold", artwork_id))
@@ -288,7 +297,6 @@ def sell_artwork(artwork_id: int, buyer_name: str, sale_price: float):
 # 10. Аренда картин
 def rent_artwork(artwork_id: int, renter_name: str, start_date: str, end_date: str):
     try:
-        # Валидация входных данных
         if not isinstance(artwork_id, int) or artwork_id <= 0:
             raise ValidationError("Некорректный ID картины.")
         if not renter_name:
@@ -296,34 +304,20 @@ def rent_artwork(artwork_id: int, renter_name: str, start_date: str, end_date: s
         if not start_date or not end_date:
             raise ValidationError("Даты начала и окончания аренды обязательны.")
 
-        # Преобразование строковых дат в объекты date
-        try:
-            start_date_obj = date.fromisoformat(start_date)
-            end_date_obj = date.fromisoformat(end_date)
-        except ValueError:
-            raise ValidationError("Некорректный формат даты. Используйте формат YYYY-MM-DD.")
-
-        if start_date_obj >= end_date_obj:
-            raise ValidationError("Дата окончания аренды должна быть позже даты начала.")
-
         conn = get_connection()
         cursor = conn.cursor()
 
-        # Получаем цену картины для расчета арендной платы
+        # Проверка существования картины
         cursor.execute('SELECT price FROM Artwork WHERE id = ?', (artwork_id,))
-        artwork_price_row = cursor.fetchone()
-        if not artwork_price_row:
-            raise ValidationError(f"Картина с ID {artwork_id} не существует.")
-        artwork_price = artwork_price_row[0]
-
-        if artwork_price <= 0:
-            raise ValidationError("Цена картины должна быть положительным числом.")
+        artwork_price = cursor.fetchone()
+        if not artwork_price:
+            raise DatabaseError(f"Картина с ID {artwork_id} не существует.")
 
         # Рассчитываем арендную плату (5% от стоимости картины за месяц)
-        rental_days = (end_date_obj - start_date_obj).days
+        rental_days = (date.fromisoformat(end_date) - date.fromisoformat(start_date)).days
         if rental_days <= 0:
             raise ValidationError("Дата окончания аренды должна быть позже даты начала.")
-        rental_fee = round(artwork_price * 0.05 * (rental_days / 30), 2)
+        rental_fee = round(artwork_price[0] * 0.05 * (rental_days / 30), 2)
 
         # Добавляем запись об аренде
         cursor.execute('''
@@ -331,66 +325,22 @@ def rent_artwork(artwork_id: int, renter_name: str, start_date: str, end_date: s
             VALUES (?, ?, ?, ?, ?)
         ''', (artwork_id, renter_name, start_date, end_date, rental_fee))
 
-        # Обновляем статус картины
+        # Обновляем статус картины на "Арендована"
         cursor.execute('''
             UPDATE Artwork SET status = ? WHERE id = ?
         ''', ("Rented", artwork_id))
 
         conn.commit()
-        return cursor.lastrowid
-
-    except ValidationError as e:
-        if conn:
-            conn.rollback()
-        raise e
-
     except sqlite3.Error as e:
         if conn:
             conn.rollback()
-        raise DatabaseError(f"Ошибка базы данных: {str(e)}")
-
+        raise DatabaseError(f"Ошибка при аренде картины: {str(e)}")
     finally:
         if conn:
             conn.close()
 
 # 11. Регистрация посетителей
-def register_visitor(name: str, email: str, phone: str):
-    try:
-        # Валидация данных
-        if not name or not isinstance(name, str):
-            raise ValidationError("Имя посетителя обязательно и должно быть строкой.")
-        if not email or "@" not in email:
-            raise ValidationError("Email должен содержать символ '@'.")
-        if not phone or not isinstance(phone, str):
-            raise ValidationError("Телефон обязателен и должен быть строкой.")
-
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        # Проверка уникальности email
-        cursor.execute('SELECT id FROM Visitor WHERE email = ?', (email,))
-        if cursor.fetchone():
-            raise ValidationError(f"Посетитель с email {email} уже зарегистрирован.")
-
-        # Добавление посетителя
-        cursor.execute('''
-            INSERT INTO Visitor (name, email, phone, registration_date)
-            VALUES (?, ?, ?, ?)
-        ''', (name, email, phone, date.today()))
-
-        conn.commit()
-    except ValidationError as e:
-        conn.rollback()
-        raise e
-    except sqlite3.Error as e:
-        conn.rollback()
-        raise DatabaseError(f"Ошибка базы данных: {str(e)}")
-    finally:
-        conn.close()
-
-
 def register_visitor(name: str, email: str, phone: str) -> int:
-    """Регистрирует нового посетителя и возвращает его ID"""
     conn = None
     try:
         # Валидация данных
@@ -499,11 +449,23 @@ def add_restoration_material(restoration_id: int, material_id: int, quantity_use
             raise ValidationError("Количество используемого материала должно быть положительным числом.")
 
         def operation(cursor):
+            # Проверяем существование реставрации
+            cursor.execute('SELECT 1 FROM Restoration WHERE id = ?', (restoration_id,))
+            if not cursor.fetchone():
+                raise DatabaseError(f"Реставрация с ID {restoration_id} не существует.")
+
+            # Проверяем существование материала
+            cursor.execute('SELECT 1 FROM Material WHERE id = ?', (material_id,))
+            if not cursor.fetchone():
+                raise DatabaseError(f"Материал с ID {material_id} не существует.")
+
+            # Добавляем материал для реставрации
             cursor.execute('''
                 INSERT INTO Restoration_Material (restoration_id, material_id, quantity_used)
                 VALUES (?, ?, ?)
             ''', (restoration_id, material_id, quantity_used))
             return cursor.lastrowid
+
         return _execute_db_operation(operation)
     except ArtGalleryError:
         raise
@@ -611,6 +573,12 @@ def update_artwork_status(artwork_id: int, new_status: str):
             raise ValidationError("Статус обязателен и должен быть строкой.")
 
         def operation(cursor):
+            # Проверяем существование картины
+            cursor.execute('SELECT 1 FROM Artwork WHERE id = ?', (artwork_id,))
+            if not cursor.fetchone():
+                raise DatabaseError(f"Картина с ID {artwork_id} не существует.")
+
+            # Обновляем статус картины
             cursor.execute('''
                 UPDATE Artwork SET status = ? WHERE id = ?
             ''', (new_status, artwork_id))
