@@ -288,6 +288,7 @@ def sell_artwork(artwork_id: int, buyer_name: str, sale_price: float):
 # 10. Аренда картин
 def rent_artwork(artwork_id: int, renter_name: str, start_date: str, end_date: str):
     try:
+        # Валидация входных данных
         if not isinstance(artwork_id, int) or artwork_id <= 0:
             raise ValidationError("Некорректный ID картины.")
         if not renter_name:
@@ -295,17 +296,36 @@ def rent_artwork(artwork_id: int, renter_name: str, start_date: str, end_date: s
         if not start_date or not end_date:
             raise ValidationError("Даты начала и окончания аренды обязательны.")
 
+        # Преобразование строковых дат в объекты date
+        try:
+            start_date_obj = date.fromisoformat(start_date)
+            end_date_obj = date.fromisoformat(end_date)
+        except ValueError:
+            raise ValidationError("Некорректный формат даты. Используйте формат YYYY-MM-DD.")
+
+        if start_date_obj >= end_date_obj:
+            raise ValidationError("Дата окончания аренды должна быть позже даты начала.")
+
         conn = get_connection()
         cursor = conn.cursor()
 
         # Получаем цену картины для расчета арендной платы
         cursor.execute('SELECT price FROM Artwork WHERE id = ?', (artwork_id,))
-        artwork_price = cursor.fetchone()[0]
+        artwork_price_row = cursor.fetchone()
+        if not artwork_price_row:
+            raise ValidationError(f"Картина с ID {artwork_id} не существует.")
+        artwork_price = artwork_price_row[0]
+
+        if artwork_price <= 0:
+            raise ValidationError("Цена картины должна быть положительным числом.")
 
         # Рассчитываем арендную плату (5% от стоимости картины за месяц)
-        rental_days = (date.fromisoformat(end_date) - date.fromisoformat(start_date)).days
+        rental_days = (end_date_obj - start_date_obj).days
+        if rental_days <= 0:
+            raise ValidationError("Дата окончания аренды должна быть позже даты начала.")
         rental_fee = round(artwork_price * 0.05 * (rental_days / 30), 2)
 
+        # Добавляем запись об аренде
         cursor.execute('''
             INSERT INTO Rental (artwork_id, renter_name, start_date, end_date, rental_fee)
             VALUES (?, ?, ?, ?, ?)
@@ -318,14 +338,20 @@ def rent_artwork(artwork_id: int, renter_name: str, start_date: str, end_date: s
 
         conn.commit()
         return cursor.lastrowid
+
+    except ValidationError as e:
+        if conn:
+            conn.rollback()
+        raise e
+
     except sqlite3.Error as e:
         if conn:
             conn.rollback()
-        raise DatabaseError(f"Ошибка при аренде картины: {str(e)}")
+        raise DatabaseError(f"Ошибка базы данных: {str(e)}")
+
     finally:
         if conn:
             conn.close()
-
 
 # 11. Регистрация посетителей
 def register_visitor(name: str, email: str, phone: str):
@@ -641,3 +667,172 @@ def get_visitors():
         return _execute_db_operation(operation)
     except Exception as e:
         raise DatabaseError(f"Ошибка при получении списка посетителей: {str(e)}")
+
+# 23. Добавление художника
+def add_artist(name: str, biography: str):
+    try:
+        if not name or not isinstance(name, str):
+            raise ValidationError("Имя художника обязательно и должно быть строкой.")
+        if not biography or not isinstance(biography, str):
+            raise ValidationError("Биография художника обязательна и должна быть строкой.")
+
+        def operation(cursor):
+            cursor.execute('''
+                INSERT INTO Artist (name, biography)
+                VALUES (?, ?)
+            ''', (name, biography))
+            return cursor.lastrowid
+
+        return _execute_db_operation(operation)
+    except ArtGalleryError:
+        raise
+    except Exception as e:
+        raise ArtGalleryError(f"Ошибка при добавлении художника: {str(e)}")
+
+# 24. Получение информации о перемещениях
+def get_movements():
+    try:
+        def operation(cursor):
+            cursor.execute('SELECT * FROM Movement')
+            return cursor.fetchall()
+
+        return _execute_db_operation(operation)
+    except Exception as e:
+        raise DatabaseError(f"Ошибка при получении списка перемещений: {str(e)}")
+
+# 25. Получение информации о документах картины
+def get_documents():
+    try:
+        def operation(cursor):
+            cursor.execute('''
+                SELECT d.id, a.title AS artwork_title, d.document_type, d.issue_date, df.file_path
+                FROM Document d
+                JOIN Artwork a ON d.artwork_id = a.id
+                LEFT JOIN Document_File df ON d.id = df.document_id
+            ''')
+            return cursor.fetchall()
+
+        return _execute_db_operation(operation)
+    except Exception as e:
+        raise DatabaseError(f"Ошибка при получении списка документов: {str(e)}")
+
+# 26. Получение информации о реставрациях
+def get_restorations():
+    try:
+        def operation(cursor):
+            cursor.execute('''
+                SELECT r.id, a.title AS artwork_title, r.restorer_name, r.start_date, r.end_date,
+                       r.cost, r.condition_before, r.condition_after
+                FROM Restoration r
+                JOIN Artwork a ON r.artwork_id = a.id
+            ''')
+            return cursor.fetchall()
+
+        return _execute_db_operation(operation)
+    except Exception as e:
+        raise DatabaseError(f"Ошибка при получении списка реставраций: {str(e)}")
+
+
+# 27. Получение информации о продажах
+def get_sales():
+    try:
+        def operation(cursor):
+            cursor.execute('''
+                SELECT s.id, a.title AS artwork_title, s.buyer_name, s.sale_date, s.price
+                FROM Sale s
+                JOIN Artwork a ON s.artwork_id = a.id
+            ''')
+            return cursor.fetchall()
+
+        return _execute_db_operation(operation)
+    except Exception as e:
+        raise DatabaseError(f"Ошибка при получении списка продаж: {str(e)}")
+
+# 28. Обновление данных художника
+def update_artist(artist_id: int, name: str = None, biography: str = None,
+                  awards: str = None, exhibitions_participated: int = None):
+    try:
+        if not isinstance(artist_id, int) or artist_id <= 0:
+            raise ValidationError("Некорректный ID художника.")
+
+        updates = []
+        params = []
+
+        if name:
+            updates.append("name = ?")
+            params.append(name)
+        if biography:
+            updates.append("biography = ?")
+            params.append(biography)
+        if awards:
+            updates.append("awards = ?")
+            params.append(awards)
+        if exhibitions_participated is not None:
+            updates.append("exhibitions_participated = ?")
+            params.append(exhibitions_participated)
+
+        if not updates:
+            raise ValidationError("Не указаны данные для обновления.")
+
+        query = f"UPDATE Artist SET {', '.join(updates)} WHERE id = ?"
+        params.append(artist_id)
+
+        def operation(cursor):
+            cursor.execute(query, params)
+            return cursor.rowcount
+
+        return _execute_db_operation(operation)
+    except ArtGalleryError:
+        raise
+    except Exception as e:
+        raise ArtGalleryError(f"Ошибка при обновлении данных о художнике: {str(e)}")
+
+# 29. Удаление художника
+def delete_artist(artist_id: int):
+    """Удаляет художника по его ID."""
+    try:
+        if not isinstance(artist_id, int) or artist_id <= 0:
+            raise ValidationError("Некорректный ID художника.")
+
+        def operation(cursor):
+            # Проверяем, есть ли у художника связанные картины
+            cursor.execute('SELECT COUNT(*) FROM Artwork WHERE artist_id = ?', (artist_id,))
+            artwork_count = cursor.fetchone()[0]
+            if artwork_count > 0:
+                raise DatabaseError(f"Невозможно удалить художника с ID {artist_id}, так как у него есть связанные картины.")
+
+            # Удаляем художника
+            cursor.execute('DELETE FROM Artist WHERE id = ?', (artist_id,))
+            return cursor.rowcount
+
+        return _execute_db_operation(operation)
+    except ArtGalleryError:
+        raise
+    except Exception as e:
+        raise ArtGalleryError(f"Ошибка при удалении художника: {str(e)}")
+
+
+# 30. Удаление картины
+def delete_artwork(artwork_id: int):
+    """Удаляет картину по её ID."""
+    try:
+        if not isinstance(artwork_id, int) or artwork_id <= 0:
+            raise ValidationError("Некорректный ID картины.")
+
+        def operation(cursor):
+            # Удаляем связанные записи
+            cursor.execute('DELETE FROM Provenance WHERE artwork_id = ?', (artwork_id,))
+            cursor.execute('DELETE FROM Movement WHERE artwork_id = ?', (artwork_id,))
+            cursor.execute('DELETE FROM Restoration WHERE artwork_id = ?', (artwork_id,))
+            cursor.execute('DELETE FROM Sale WHERE artwork_id = ?', (artwork_id,))
+            cursor.execute('DELETE FROM Rental WHERE artwork_id = ?', (artwork_id,))
+            cursor.execute('DELETE FROM Exhibition_Artwork WHERE artwork_id = ?', (artwork_id,))
+            # Удаляем саму картину
+            cursor.execute('DELETE FROM Artwork WHERE id = ?', (artwork_id,))
+            return cursor.rowcount
+
+        return _execute_db_operation(operation)
+    except ArtGalleryError:
+        raise
+    except Exception as e:
+        raise ArtGalleryError(f"Ошибка при удалении картины: {str(e)}")
